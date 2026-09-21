@@ -7,41 +7,41 @@ module FaceDetect
 using OpenCV
 using Downloads, Printf, Statistics
 
-export load_cascades,  crop_rect, shave_margin, norm_rect, rank_faces, mssim_norm
-export face_detect, face_detect_file, pairwise_similarity, main
+export loadcascades, croprect, shavemargin, normalizerect, rankfaces, mssim_norm
+export face_detect_image, face_detect_file, pairwisesimilarity, facedetect
 
 # Directory paths and numeric constants
 const DATA_DIR = joinpath(@__DIR__, "opencv-data")
 const PROFILES = Dict(
-    "HAAR_FRONTALFACE_ALT2" => "haarcascades/haarcascade_frontalface_alt2.xml"
+    "HAAR_FRONTALFACE_ALT2" => "haarcascades/haarcascade_frontalface_alt2.xml",
 )
 const CASCADE_BASE_URL = "https://raw.githubusercontent.com/opencv/opencv/4.x/data/"
 
 const NORM_SIZE = 100
 const NORM_MARGIN = 10
-const CASCADES = Dict{String,OpenCV.CascadeClassifier}()
+const CASCADES = Dict{String, OpenCV.CascadeClassifier}()
 
 """
     fatal(msg)
 
-Print an error message to stderr and throw an exception with the message `msg`."""
+Print an error message `msg` to stderr and throw an exception with the message."""
 function fatal(msg)
     println(stderr, "Error in FaceDetect.jl: $msg")
     throw(ErrorException(msg))
 end
 
 """
-    load_cascades(data_dir=DATA_DIR)
+    loadcascades(data_dir=DATA_DIR)
 
 Load the Haar cascade classifiers listed in `PROFILES` from `data_dir`
 into the global `CASCADES` dictionary.
 """
-function load_cascades(data_dir=DATA_DIR)
+function loadcascades(data_dir = DATA_DIR)
     empty!(CASCADES)
     for (name, relative_path) in PROFILES
         path = joinpath(data_dir, relative_path)
         if !isfile(path)
-            fetch_cascade(relative_path, path)
+            downloadcascadexml(relative_path, path)
         end
         cascade = OpenCV.CascadeClassifier(path)
         if OpenCV.empty(cascade)
@@ -53,12 +53,12 @@ function load_cascades(data_dir=DATA_DIR)
 end
 
 """
-    fetch_cascade(relative_path, dest_path)
+    downloadcascadexml(relative_path, dest_path)
 
 Download a Haar cascade XML file from the official OpenCV GitHub
 repository into `dest_path` if it is not already present locally.
 """
-function fetch_cascade(relative_path, dest_path)
+function downloadcascadexml(relative_path, dest_path)
     mkpath(dirname(dest_path))
     url = CASCADE_BASE_URL * relative_path
     try
@@ -70,15 +70,15 @@ function fetch_cascade(relative_path, dest_path)
 end
 
 """
-    gray_array(im)
+    grayarray(im)
 
 OpenCV.jl represents a grayscale Mat with a third, singleton channel dimension.
 Drop the singleton and return a 2-dimensional matrix for numerical operations.
 """
-function gray_array(im)
+function grayarray(im)
     a = Array(im)
     if ndims(a) == 3 && size(a, 1) == 1
-        return dropdims(a; dims=1)
+        return dropdims(a; dims = 1)
     elseif ndims(a) == 2
         return a
     else
@@ -87,13 +87,13 @@ function gray_array(im)
 end
 
 """
-    crop_rect(im, rect, shave=0)
+    croprect(im, rect, shave=0)
 
 Crop `im` to the rectangle `rect = (x, y, w, h)`, optionally shaving
 `shave` pixels off each edge. Converts from OpenCV's zero-based
 coordinates to Julia's one-based array indexing. Returns partial copy of the image.
 """
-function crop_rect(im, rect, shave=0)
+function croprect(im, rect, shave = 0)
     x, y, w, h = rect
     x1 = x + shave + 1
     y1 = y + shave + 1
@@ -103,12 +103,12 @@ function crop_rect(im, rect, shave=0)
 end
 
 """
-    shave_margin(im, margin)
+    shavemargin(im, margin)
 
 Remove `margin` pixels from each edge of `im`, supporting both 2-D
 and channel-first 3-D arrays.
 """
-function shave_margin(im, margin)
+function shavemargin(im, margin)
     if margin == 0
         return im
     end
@@ -120,14 +120,14 @@ function shave_margin(im, margin)
 end
 
 """
-    norm_rect(im, rect; equalize=true, same_aspect=false)
+    normalizerect(im, rect; equalize=true, same_aspect=false)
 
 Crop and resize the face region `rect` from `im` to a normalized
 size. The OpenCV portion remains an OpenCV Mat. Once normalization is
 complete, the single-channel image is converted to a 2-D Julia array.
 """
-function norm_rect(im, rect; equalize=true, same_aspect=false)
-    roi = crop_rect(im, rect)
+function normalizerect(im, rect; equalize = true, same_aspect = false)
+    roi = croprect(im, rect)
     if equalize
         roi = OpenCV.equalizeHist(roi)
     end
@@ -144,20 +144,20 @@ function norm_rect(im, rect; equalize=true, same_aspect=false)
         dsize = OpenCV.Size{Int32}(Int32(side), Int32(side))
     end
 
-    roi = OpenCV.resize(roi, dsize; interpolation=OpenCV.INTER_CUBIC)
-    roi = shave_margin(roi, NORM_MARGIN)
+    roi = OpenCV.resize(roi, dsize; interpolation = OpenCV.INTER_CUBIC)
+    roi = shavemargin(roi, NORM_MARGIN)
 
-    return gray_array(roi)
+    return grayarray(roi)
 end
 
 """
-    rank_faces(im, rects)
+    rankfaces(im, rects)
 
 Score and rank candidate face rectangles `rects` detected in `im`,
 returning the per-rectangle scores and the index of the best match.
 """
-function rank_faces(im, rects)
-    scores = Dict{String,Any}[]
+function rankfaces(im, rects)
+    scores = Dict{String, Any}[]
     isempty(rects) && return scores, nothing
 
     # OpenCV.jl image dimensions are: (channels, width, height)
@@ -167,8 +167,8 @@ function rank_faces(im, rects)
     for rect in rects
         x, y, w, h = rect
 
-        # norm_rect returns a 2-D grayscale array.
-        roi_n = norm_rect(im, rect; equalize=false, same_aspect=true)
+        # normalizerect returns a 2-D grayscale array.
+        roi_n = normalizerect(im, rect; equalize = false, same_aspect = true)
         roi_l = OpenCV.Laplacian(roi_n, OpenCV.CV_8U)
         e = sum(roi_l) / length(roi_l)
 
@@ -196,7 +196,7 @@ function rank_faces(im, rects)
         score["f"] = eN * 0.7 + (1 - d) * 0.1 + sN * 0.2
     end
 
-    ranks = sortperm(1:length(scores); by=i -> scores[i]["f"], rev=true)
+    ranks = sortperm(1:length(scores); by = i -> scores[i]["f"], rev = true)
 
     for (rank, index) in enumerate(ranks)
         scores[index]["RANK"] = rank - 1
@@ -211,10 +211,10 @@ end
 Compute the mean structural similarity (MSSIM) between two images.
 `X` and `Y` are floating point Matrix type arrays holding the image data.
 """
-function mssim_norm(X, Y; K1=0.01, K2=0.03, win_size=11, sigma=1.5)
+function mssim_norm(X, Y; K1 = 0.01, K2 = 0.03, win_size = 11, sigma = 1.5)
     # Ensure the numerical inputs are ordinary 2-D arrays.
-    X = ndims(X) == 3 ? gray_array(X) : Array(X)
-    Y = ndims(Y) == 3 ? gray_array(Y) : Array(Y)
+    X = ndims(X) == 3 ? grayarray(X) : Array(X)
+    Y = ndims(Y) == 3 ? grayarray(Y) : Array(Y)
 
     @assert ndims(X) == 2
     @assert ndims(Y) == 2
@@ -252,11 +252,11 @@ function mssim_norm(X, Y; K1=0.01, K2=0.03, win_size=11, sigma=1.5)
 
     margin = (win_size - 1) ÷ 2
 
-    return mean(shave_margin(S, margin))
+    return mean(shavemargin(S, margin))
 end
 
 """
-    face_detect(im; biggest=false, scalefactor=1.1, min_neighbors=5, min_frac=1/20, max_frac=1/2)
+    face_detect_image(im; biggest=false, scalefactor=1.1, min_neighbors=5, min_frac=1/20, max_frac=1/2)
 
 Detect faces in the grayscale image `im` using the loaded Haar
 cascade, optionally restricting the search to the biggest face.
@@ -268,7 +268,14 @@ lever for suppressing false-positive detections without new training
 data. `scalefactor` and the `min_frac`/`max_frac` size bounds can be
 tightened similarly to prune spurious small/large matches.
 """
-function face_detect(im; biggest=false, scalefactor=1.1, min_neighbors=5, min_frac=1/20, max_frac=1/2)
+function face_detect_image(
+    im;
+    biggest = false,
+    scalefactor = 1.1,
+    min_neighbors = 5,
+    min_frac = 1 / 20,
+    max_frac = 1 / 2,
+)
     # OpenCV.jl call below returns (channels x and y, width, height)
     # width = size(im, 2)
     # height = size(im, 3)
@@ -292,11 +299,11 @@ function face_detect(im; biggest=false, scalefactor=1.1, min_neighbors=5, min_fr
     features = OpenCV.detectMultiScale(
         cascade,
         im;
-        scaleFactor=Float64(scalefactor),
-        minNeighbors=Int32(min_neighbors),
-        flags=flags,
-        minSize=OpenCV.Size{Int32}(Int32(minlen), Int32(minlen)),
-        maxSize=OpenCV.Size{Int32}(Int32(maxlen), Int32(maxlen))
+        scaleFactor = Float64(scalefactor),
+        minNeighbors = Int32(min_neighbors),
+        flags = flags,
+        minSize = OpenCV.Size{Int32}(Int32(minlen), Int32(minlen)),
+        maxSize = OpenCV.Size{Int32}(Int32(maxlen), Int32(maxlen)),
     )
 
     return [(Int(r.x), Int(r.y), Int(r.width), Int(r.height)) for r in features]
@@ -305,30 +312,30 @@ end
 """
     face_detect_file(path; biggest=false)
 
-Load the image at `path`, equalize its histogram, and run `face_detect` on it.
+Load the image at `path`, equalize its histogram, and run `face_detect_image` on it.
 """
-function face_detect_file(path; biggest=false, min_neighbors=5)
+function face_detect_file(path; biggest = false, min_neighbors = 5)
     im = OpenCV.imread(path, OpenCV.IMREAD_GRAYSCALE)
     if isempty(im.data)
         fatal("cannot load input image $path")
     end
     im = OpenCV.equalizeHist(im)
-    features = face_detect(im; biggest=biggest, min_neighbors=min_neighbors)
+    features = face_detect_image(im; biggest = biggest, min_neighbors = min_neighbors)
     return im, features
 end
 
 """
-    pairwise_similarity(im, features, template; mssim_args...)
+    pairwisesimilarity(im, features, template; mssim_args...)
 
 Compute the MSSIM score between `template` and each detected face
 rectangle in `features`, after normalizing each face region.
 """
-function pairwise_similarity(im, features, template; mssim_args...)
+function pairwisesimilarity(im, features, template; mssim_args...)
     template = Float32.(template) ./ 255
     scores = Float64[]
 
     for rect in features
-        roi = norm_rect(im, rect)
+        roi = normalizerect(im, rect)
         roi = Float32.(roi) ./ 255
         score = mssim_norm(roi, template; mssim_args...)
         push!(scores, score)
@@ -338,13 +345,13 @@ function pairwise_similarity(im, features, template; mssim_args...)
 end
 
 """
-    draw_results(input_path, output_path, features, scores, best, debug)
+    drawresults(input_path, output_path, features, scores, best, debug)
 
 Draw bounding boxes (and, in debug mode, score metrics) for the
 detected `features` onto the image at `input_path`, then write the
 result to `output_path`.
 """
-function draw_results(input_path, output_path, features, scores, best, debug)
+function drawresults(input_path, output_path, features, scores, best, debug)
     im = OpenCV.imread(input_path)
     if isempty(im.data)
         fatal("cannot load input image $input_path")
@@ -364,8 +371,8 @@ function draw_results(input_path, output_path, features, scores, best, debug)
         p1 = OpenCV.Point{Int32}(Int32(x), Int32(y))
         p2 = OpenCV.Point{Int32}(Int32(x + w), Int32(y + h))
 
-        OpenCV.rectangle(im, p1, p2, (0, 0, 0); thickness=Int64(4))
-        OpenCV.rectangle(im, p1, p2, fg; thickness=Int64(2))
+        OpenCV.rectangle(im, p1, p2, (0, 0, 0); thickness = Int64(4))
+        OpenCV.rectangle(im, p1, p2, fg; thickness = Int64(2))
 
         if debug
             text_y = y + h + 20
@@ -378,8 +385,8 @@ function draw_results(input_path, output_path, features, scores, best, debug)
                     OpenCV.FONT_HERSHEY_SIMPLEX,
                     0.5,
                     fg;
-                    thickness=Int64(1),
-                    lineType=OpenCV.LINE_AA
+                    thickness = Int64(1),
+                    lineType = OpenCV.LINE_AA,
                 )
                 text_y += 15
             end
@@ -394,12 +401,13 @@ function draw_results(input_path, output_path, features, scores, best, debug)
 end
 
 """
-    print_help()
+    printhelp()
 
 Print the command-line usage message for the facedetect tool.
 """
-function print_help()
-    println("""
+function printhelp()
+    println(
+        """
 Usage: facedetect [options] FILE
 
 A simple face detector for batch processing.
@@ -438,16 +446,17 @@ Options:
 
     -h, --help
         Show this help.
-""")
+""",
+    )
 end
 
 """
-    parse_args(args)
+    parseargs(args)
 
 Parse the facedetect command-line arguments into an options dictionary.
 """
-function parse_args(args)
-    options = Dict{Symbol,Any}(
+function parseargs(args)
+    options = Dict{Symbol, Any}(
         :biggest => false,
         :best => false,
         :center => false,
@@ -458,7 +467,7 @@ function parse_args(args)
         :min_neighbors => 5,
         :output => nothing,
         :debug => false,
-        :file => nothing
+        :file => nothing,
     )
 
     i = 1
@@ -496,7 +505,7 @@ function parse_args(args)
         elseif arg == "-d" || arg == "--debug"
             options[:debug] = true
         elseif arg == "-h" || arg == "--help"
-            print_help()
+            printhelp()
             exit(0)
         elseif startswith(arg, "-")
             fatal("unknown option $arg")
@@ -516,15 +525,15 @@ function parse_args(args)
 end
 
 """
-    main(args=ARGS)
+    facedetect(args=ARGS)
 
 Entry point for the facedetect command-line tool: parses options,
 loads cascades, detects (and optionally searches for) faces, and
 prints or draws the results.
 """
-function main(args=ARGS)
-    options = parse_args(args)
-    load_cascades(options[:data_dir])
+function facedetect(args = ARGS)
+    options = parseargs(args)
+    loadcascades(options[:data_dir])
 
     im, features = face_detect_file(
         options[:file];
@@ -535,15 +544,15 @@ function main(args=ARGS)
     sim_scores = nothing
 
     if options[:search] !== nothing
-        search_im, search_features = face_detect_file(options[:search]; biggest=true)
+        search_im, search_features = face_detect_file(options[:search]; biggest = true)
         isempty(search_features) && fatal("cannot detect face in template")
 
         sim_threshold = options[:search_threshold] / 100
-        sim_template = norm_rect(search_im, search_features[1])
-        all_scores = pairwise_similarity(im, features, sim_template)
+        sim_template = normalizerect(search_im, search_features[1])
+        all_scores = pairwisesimilarity(im, features, sim_template)
 
         sim_scores = Float64[]
-        sim_features = NTuple{4,Int}[]
+        sim_features = NTuple{4, Int}[]
 
         for (i, score) in enumerate(all_scores)
             if score >= sim_threshold
@@ -559,13 +568,18 @@ function main(args=ARGS)
         return isempty(features) ? 2 : 0
     end
 
-    scores = Dict{String,Any}[]
+    scores = Dict{String, Any}[]
     best = nothing
 
     if !isempty(features) &&
-       (options[:debug] || options[:best] || options[:biggest] || sim_scores !== nothing)
+            (
+                options[:debug] ||
+                    options[:best] ||
+                    options[:biggest] ||
+                    sim_scores !== nothing
+            )
 
-        scores, best = rank_faces(im, features)
+        scores, best = rankfaces(im, features)
 
         if sim_scores !== nothing
             for i in eachindex(features)
@@ -575,13 +589,13 @@ function main(args=ARGS)
     end
 
     if options[:output] !== nothing
-        draw_results(
+        drawresults(
             options[:file],
             options[:output],
             features,
             scores,
             best,
-            options[:debug]
+            options[:debug],
         )
     end
 
@@ -606,4 +620,3 @@ end
 
 
 end # module FaceDetect
-
