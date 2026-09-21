@@ -1,4 +1,7 @@
-""" Derived from `facedetect.py` in the Python program facedetect, ported to OpenCV.jl """
+"""
+    Julia face detection using OpenCV.jl. See similar code at
+    https://github.com/opencv/opencv/blob/4.x/samples/python/facedetect.py.
+"""
 module FaceDetect
 
 using OpenCV
@@ -6,7 +9,6 @@ using Downloads, Printf, Statistics
 
 export load_cascades,  crop_rect, shave_margin, norm_rect, rank_faces, mssim_norm
 export face_detect, face_detect_file, pairwise_similarity, main
-
 
 # Directory paths and numeric constants
 const DATA_DIR = joinpath(@__DIR__, "opencv-data")
@@ -18,7 +20,6 @@ const CASCADE_BASE_URL = "https://raw.githubusercontent.com/opencv/opencv/4.x/da
 const NORM_SIZE = 100
 const NORM_MARGIN = 10
 const CASCADES = Dict{String,OpenCV.CascadeClassifier}()
-
 
 """
     fatal(msg)
@@ -255,19 +256,26 @@ function mssim_norm(X, Y; K1=0.01, K2=0.03, win_size=11, sigma=1.5)
 end
 
 """
-    face_detect(im; biggest=false)
+    face_detect(im; biggest=false, scalefactor=1.1, min_neighbors=5, min_frac=1/20, max_frac=1/2)
 
 Detect faces in the grayscale image `im` using the loaded Haar
 cascade, optionally restricting the search to the biggest face.
+
+`min_neighbors` controls how many overlapping candidate rectangles must
+agree before a detection is accepted; raising it (from the OpenCV
+default of ~3-4) trades recall for precision and is the most effective
+lever for suppressing false-positive detections without new training
+data. `scalefactor` and the `min_frac`/`max_frac` size bounds can be
+tightened similarly to prune spurious small/large matches.
 """
-function face_detect(im; biggest=false)
+function face_detect(im; biggest=false, scalefactor=1.1, min_neighbors=5, min_frac=1/20, max_frac=1/2)
     # OpenCV.jl call below returns (channels x and y, width, height)
     # width = size(im, 2)
     # height = size(im, 3)
 
     side = sqrt(length(im))
-    minlen = max(1, floor(Int, side / 20))
-    maxlen = max(minlen, floor(Int, side / 2))
+    minlen = max(1, floor(Int, side * min_frac))
+    maxlen = max(minlen, floor(Int, side * max_frac))
 
     # OpenCV: CASCADE_DO_CANNY_PRUNING = 1, CASCADE_FIND_BIGGEST_OBJECT = 4
     flags = Int32(1)
@@ -284,8 +292,8 @@ function face_detect(im; biggest=false)
     features = OpenCV.detectMultiScale(
         cascade,
         im;
-        scaleFactor=1.1,
-        minNeighbors=Int32(4),
+        scaleFactor=Float64(scalefactor),
+        minNeighbors=Int32(min_neighbors),
         flags=flags,
         minSize=OpenCV.Size{Int32}(Int32(minlen), Int32(minlen)),
         maxSize=OpenCV.Size{Int32}(Int32(maxlen), Int32(maxlen))
@@ -299,13 +307,13 @@ end
 
 Load the image at `path`, equalize its histogram, and run `face_detect` on it.
 """
-function face_detect_file(path; biggest=false)
+function face_detect_file(path; biggest=false, min_neighbors=5)
     im = OpenCV.imread(path, OpenCV.IMREAD_GRAYSCALE)
     if isempty(im.data)
         fatal("cannot load input image $path")
     end
     im = OpenCV.equalizeHist(im)
-    features = face_detect(im; biggest=biggest)
+    features = face_detect(im; biggest=biggest, min_neighbors=min_neighbors)
     return im, features
 end
 
@@ -419,6 +427,9 @@ Options:
     --search-threshold PERCENT
         Face similarity threshold (default: 30%).
 
+    --min-neighbors N
+        Minimum number of overlapping rectangles required to retain detection (default: 5).
+
     -o, --output FILE
         Image output file.
 
@@ -444,6 +455,7 @@ function parse_args(args)
         :query => false,
         :search => nothing,
         :search_threshold => 30,
+        :min_neighbors => 5,
         :output => nothing,
         :debug => false,
         :file => nothing
@@ -473,6 +485,10 @@ function parse_args(args)
             i += 1
             i > length(args) && fatal("--search-threshold requires a value")
             options[:search_threshold] = parse(Int, args[i])
+        elseif arg == "--min-neighbors"
+            i += 1
+            i > length(args) && fatal("--min-neighbors requires a value")
+            options[:min_neighbors] = parse(Int, args[i])
         elseif arg == "-o" || arg == "--output"
             i += 1
             i > length(args) && fatal("--output requires a file")
@@ -512,7 +528,8 @@ function main(args=ARGS)
 
     im, features = face_detect_file(
         options[:file];
-        biggest = options[:query] || options[:biggest]
+        biggest = options[:query] || options[:biggest],
+        min_neighbors = options[:min_neighbors],
     )
 
     sim_scores = nothing
