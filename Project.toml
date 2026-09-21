@@ -8,6 +8,7 @@ julia = "1"
 OpenCV = "4"
 
 [deps]
+Downloads = "f43a241f-c22c-5947-9cb0-a1c0d473175b"
 OpenCV = "f878e3a2-a245-4720-8660-60795d644f2a"
 
 [extras]
