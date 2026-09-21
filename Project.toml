@@ -1,5 +1,5 @@
 name = "FaceDetect"
-uuid = "3a3cb31a-4a77-4887-ba1a-a3494ab875a7""
+uuid = "3a3cb31a-4a77-4887-ba1a-a3494ab875a7"
 authors = ["William Herrera <wherrera@alahonua.com>"]
 version = "0.0.1"
 
