@@ -1,0 +1,17 @@
+name = "FaceDetect"
+uuid = "3a3cb31a-4a77-4887-ba1a-a3494ab875a7""
+authors = ["William Herrera <wherrera@alahonua.com>"]
+version = "0.0.1"
+
+[compat]
+julia = "1"
+OpenCV = "4"
+
+[deps]
+OpenCV = "f878e3a2-a245-4720-8660-60795d644f2a"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
