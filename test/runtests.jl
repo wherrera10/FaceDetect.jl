@@ -113,7 +113,7 @@ end
     rects = facedetect(blank; min_neighbors = 5)
     @test isempty(rects)
 
-    _, features = facedetect("testfile8.jpg")
+    _, features = facedetect("testphoto8.jpg")
     @test length(features) == 8
     @test (1066, 363, 94, 94) ∈ features
 end
