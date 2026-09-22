@@ -12,7 +12,7 @@ const DATA_DIR = joinpath(@__DIR__, "opencv-data")
 const PROFILES = Dict(
     "HAAR_FRONTALFACE_ALT2" => "haarcascades/haarcascade_frontalface_alt2.xml",
 )
-const CASCADE_BASE_URL = "https://raw.githubusercontent.com/opencv/opencv/4.x/data/"
+const CASCADE_BASE_URL = "https://raw.githubusercontent.com/opencv/opencv/4.10.0/data/"
 
 const NORM_SIZE = 100
 const NORM_MARGIN = 10
@@ -166,8 +166,10 @@ function rankfaces(im, rects)
 
         # normalizerect returns a 2-D grayscale array.
         roi_n = normalizerect(im, rect; equalize = false, same_aspect = true)
-        roi_l = OpenCV.Laplacian(roi_n, OpenCV.CV_8U)
-        e = sum(roi_l) / length(roi_l)
+        # variance `var()` here used as a "variance of Laplacian" focus/sharpness measure.
+        roi_l = OpenCV.Laplacian(roi_n, OpenCV.CV_64F)
+        roi_l = Array(roi_l)
+        e = var(roi_l)
 
         dx = width / 2 - x + w / 2
         dy = height / 2 - y + h / 2
@@ -186,7 +188,7 @@ function rankfaces(im, rects)
         d = score["d"]
 
         sN = s / smax
-        eN = e / emax
+        eN = emax > 0 ? e / emax : zero(e)
 
         score["sN"] = sN
         score["eN"] = eN
@@ -276,8 +278,10 @@ function face_detect_image(
     # OpenCV.jl call below returns (channels x and y, width, height)
     # width = size(im, 2)
     # height = size(im, 3)
+    width = size(im, 2)
+    height = size(im, 3)
+    side = min(width, height)
 
-    side = sqrt(length(im))
     minlen = max(1, floor(Int, side * min_frac))
     maxlen = max(minlen, floor(Int, side * max_frac))
 
@@ -448,6 +452,15 @@ Options:
 end
 
 """
+    HelpRequested()
+
+Sentinel exception thrown by `parseargs` when `-h`/`--help` is given,
+so that library callers (not just the CLI entry point) don't have the
+process killed out from under them by a stray `exit()` call.
+"""
+struct HelpRequested <: Exception end
+
+"""
     parseargs(args)
 
 Parse the facedetect command-line arguments into an options dictionary.
@@ -490,11 +503,15 @@ function parseargs(args)
         elseif arg == "--search-threshold"
             i += 1
             i > length(args) && fatal("--search-threshold requires a value")
-            options[:search_threshold] = parse(Int, args[i])
+            value = tryparse(Int, args[i])
+            value === nothing && fatal("--search-threshold requires an integer value, got '$(args[i])'")
+            options[:search_threshold] = value
         elseif arg == "--min-neighbors"
             i += 1
             i > length(args) && fatal("--min-neighbors requires a value")
-            options[:min_neighbors] = parse(Int, args[i])
+            value = tryparse(Int, args[i])
+            value === nothing && fatal("--min-neighbors requires an integer value, got '$(args[i])'")
+            options[:min_neighbors] = value
         elseif arg == "-o" || arg == "--output"
             i += 1
             i > length(args) && fatal("--output requires a file")
@@ -503,7 +520,7 @@ function parseargs(args)
             options[:debug] = true
         elseif arg == "-h" || arg == "--help"
             printhelp()
-            exit(0)
+            throw(HelpRequested())
         elseif startswith(arg, "-")
             fatal("unknown option $arg")
         else
@@ -529,7 +546,14 @@ loads cascades, detects (and optionally searches for) faces, and
 prints or draws the results.
 """
 function facedetect(args = ARGS)
-    options = parseargs(args)
+    local options
+    try
+        options = parseargs(args)
+    catch e
+        e isa HelpRequested && return 0
+        rethrow()
+    end
+
     loadcascades(options[:data_dir])
 
     im, features = face_detect_file(
