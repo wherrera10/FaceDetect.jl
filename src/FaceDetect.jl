@@ -230,7 +230,7 @@ data. `scalefactor` and the `min_frac`/`max_frac` size bounds can be
 tightened similarly to prune spurious small/large matches.
 """
 function facedetect(
-    im;
+    im::AbstractArray;
     biggest = false,
     scalefactor = 1.1,
     min_neighbors = 5,
@@ -275,7 +275,7 @@ end
 
 Load the image at `path`, equalize its histogram, and run `facedetect` on it.
 """
-function facedetect(path; biggest = false, min_neighbors = 5)
+function facedetect(path::AbstractString; biggest = false, min_neighbors = 5)
     im = OpenCV.imread(path, OpenCV.IMREAD_GRAYSCALE)
     if isempty(im.data)
         fatal("cannot load input image $path")
