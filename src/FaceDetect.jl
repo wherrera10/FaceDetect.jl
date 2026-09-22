@@ -166,10 +166,9 @@ function rankfaces(im, rects)
 
         # normalizerect returns a 2-D grayscale array.
         roi_n = normalizerect(im, rect; equalize = false, same_aspect = true)
-        # variance `var()` here used as a "variance of Laplacian" focus/sharpness measure.
         roi_l = OpenCV.Laplacian(roi_n, OpenCV.CV_64F)
         roi_l = Array(roi_l)sum(roi_l) / length(roi_l)
-        e = var(roi_l) + mean(roi_l)
+        e = mean(roi_l) # or var(roi_l) if variance of Laplacian used for focus/sharpness measure.
 
         dx = width / 2 - x + w / 2
         dy = height / 2 - y + h / 2
