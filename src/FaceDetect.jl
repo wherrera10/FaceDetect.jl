@@ -131,7 +131,7 @@ function normalizerect(im, rect; equalize = true, same_aspect = false)
         roi = OpenCV.equalizeHist(roi)
     end
 
-    side = NORM_SIZE + NORM_MARGIN
+    side = NORM_SIZE + NORM_MARGIN* 2
     _, _, w, h = rect
 
     if same_aspect
