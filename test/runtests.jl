@@ -110,10 +110,10 @@ end
     @test !OpenCV.empty(FaceDetect.CASCADES["HAAR_FRONTALFACE_ALT2"])
 
     blank = zeros(UInt8, 1, 200, 200)
-    rects = face_detect_image(blank; min_neighbors = 5)
+    rects = facedetect(blank; min_neighbors = 5)
     @test isempty(rects)
 
-    _, features = face_detect_file("testfile8.jpg")
+    _, features = facedetect("testfile8.jpg")
     @test length(features) == 8
     @test (1066, 363, 94, 94) ∈ features
 end
