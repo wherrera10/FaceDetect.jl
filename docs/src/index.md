@@ -20,5 +20,5 @@ Pkg.add("FaceDetect")
 ```
 
 ```@autodocs
-Modules = [ThreadSafeDicts]
+Modules = [FaceDetect]
 ```
