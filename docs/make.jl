@@ -9,7 +9,7 @@ makedocs(;
     repo=Documenter.Remotes.GitHub("wherrera10", "FaceDetect.jl"),
     format=Documenter.HTML(;
         canonical="https://wherrera10.github.io/FaceDetect.jl",
-        edit_link="gh-pages",
+        edit_link="master",
         assets=String[],
     ),
     pages=[
