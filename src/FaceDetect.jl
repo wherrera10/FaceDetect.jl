@@ -4,21 +4,16 @@ module FaceDetect
 using OpenCV
 using Downloads, Printf, Statistics
 
-export loadcascades, croprect, shavemargin, normalizerect, rankfaces, mssim_norm
-export face_detect_image, face_detect_file, pairwisesimilarity, facedetect
-
-# Directory paths and numeric constants
-const DATA_DIR = joinpath(@__DIR__, "opencv-data")
-const PROFILES = Dict(
-    "HAAR_FRONTALFACE_ALT2" => "haarcascades/haarcascade_frontalface_alt2.xml",
-)
-const CASCADE_BASE_URL = "https://raw.githubusercontent.com/opencv/opencv/4.x/data/"
+export loadcascades, facedetect
 
 const NORM_SIZE = 100
 const NORM_MARGIN = 10
 const CASCADES = Dict{String, OpenCV.CascadeClassifier}()
 
 const DEBUG_PRINTLN = Ref(true)
+
+include("cascades.jl")
+include("appfuncs.jl")
 
 """
     fatal(msg)
@@ -27,45 +22,6 @@ Print an error message `msg` to stderr and throw an exception with the message."
 function fatal(msg)
     DEBUG_PRINTLN[] && println(stderr, "Error in FaceDetect.jl: $msg")
     throw(ErrorException(msg))
-end
-
-"""
-    loadcascades(data_dir=DATA_DIR)
-
-Load the Haar cascade classifiers listed in `PROFILES` from `data_dir`
-into the global `CASCADES` dictionary.
-"""
-function loadcascades(data_dir = DATA_DIR)
-    empty!(CASCADES)
-    for (name, relative_path) in PROFILES
-        path = joinpath(data_dir, relative_path)
-        if !isfile(path)
-            downloadcascadexml(relative_path, path)
-        end
-        cascade = OpenCV.CascadeClassifier(path)
-        if OpenCV.empty(cascade)
-            fatal("cannot load $name from $path")
-        end
-        CASCADES[name] = cascade
-    end
-    return nothing
-end
-
-"""
-    downloadcascadexml(relative_path, dest_path)
-
-Download a Haar cascade XML file from the official OpenCV GitHub
-repository into `dest_path` if it is not already present locally.
-"""
-function downloadcascadexml(relative_path, dest_path)
-    mkpath(dirname(dest_path))
-    url = CASCADE_BASE_URL * relative_path
-    try
-        Downloads.download(url, dest_path)
-    catch e
-        fatal("failed to download cascade from $url: $e")
-    end
-    return nothing
 end
 
 """
@@ -261,7 +217,7 @@ function mssim_norm(X, Y; K1 = 0.01, K2 = 0.03, win_size = 11, sigma = 1.5)
 end
 
 """
-    face_detect_image(im; biggest=false, scalefactor=1.1, min_neighbors=5, min_frac=1/20, max_frac=1/2)
+    facedetect(im::AbstractArray; biggest=false, scalefactor=1.1, min_neighbors=5, min_frac=1/20, max_frac=1/2)
 
 Detect faces in the grayscale image `im` using the loaded Haar
 cascade, optionally restricting the search to the biggest face.
@@ -273,7 +229,7 @@ lever for suppressing false-positive detections without new training
 data. `scalefactor` and the `min_frac`/`max_frac` size bounds can be
 tightened similarly to prune spurious small/large matches.
 """
-function face_detect_image(
+function facedetect(
     im;
     biggest = false,
     scalefactor = 1.1,
@@ -315,17 +271,17 @@ function face_detect_image(
 end
 
 """
-    face_detect_file(path; biggest=false)
+    facedetect(path::AbstractString; biggest=false)
 
-Load the image at `path`, equalize its histogram, and run `face_detect_image` on it.
+Load the image at `path`, equalize its histogram, and run `facedetect` on it.
 """
-function face_detect_file(path; biggest = false, min_neighbors = 5)
+function facedetect(path; biggest = false, min_neighbors = 5)
     im = OpenCV.imread(path, OpenCV.IMREAD_GRAYSCALE)
     if isempty(im.data)
         fatal("cannot load input image $path")
     end
     im = OpenCV.equalizeHist(im)
-    features = face_detect_image(im; biggest = biggest, min_neighbors = min_neighbors)
+    features = facedetect(im; biggest = biggest, min_neighbors = min_neighbors)
     return im, features
 end
 
@@ -405,222 +361,5 @@ function drawresults(input_path, output_path, features, scores, best, debug)
     return nothing
 end
 
-"""
-    printhelp()
-
-Print the command-line usage message for the facedetect tool.
-"""
-function printhelp()
-    println(
-        """
-Usage: facedetect [options] FILE
-
-A simple face detector for batch processing.
-
-Options:
-    --biggest
-        Extract only the biggest face.
-
-    --best
-        Extract only the best matching face.
-
-    -c, --center
-        Print only the center coordinates.
-
-    --data-dir DIRECTORY
-        OpenCV data files directory.
-
-    -q, --query
-        Query only.
-        Exit 0 if a face is detected, 2 otherwise.
-
-    -s, --search FILE
-        Search for faces similar to the one supplied in FILE.
-
-    --search-threshold PERCENT
-        Face similarity threshold (default: 30%).
-
-    --min-neighbors N
-        Minimum number of overlapping rectangles required to retain detection (default: 5).
-
-    -o, --output FILE
-        Image output file.
-
-    -d, --debug
-        Add debugging metrics to the image output file.
-
-    -h, --help
-        Show this help.
-""",
-    )
-end
-
-"""
-    parseargs(args)
-
-Parse the facedetect command-line arguments into an options dictionary.
-"""
-function parseargs(args)
-    options = Dict{Symbol, Any}(
-        :biggest => false,
-        :best => false,
-        :center => false,
-        :data_dir => DATA_DIR,
-        :query => false,
-        :search => nothing,
-        :search_threshold => 30,
-        :min_neighbors => 5,
-        :output => nothing,
-        :debug => false,
-        :file => nothing,
-    )
-
-    i = 1
-    while i <= length(args)
-        arg = args[i]
-
-        if arg == "--biggest"
-            options[:biggest] = true
-        elseif arg == "--best"
-            options[:best] = true
-        elseif arg == "-c" || arg == "--center"
-            options[:center] = true
-        elseif arg == "--data-dir"
-            i += 1
-            i > length(args) && fatal("--data-dir requires a directory")
-            options[:data_dir] = args[i]
-        elseif arg == "-q" || arg == "--query"
-            options[:query] = true
-        elseif arg == "-s" || arg == "--search"
-            i += 1
-            i > length(args) && fatal("--search requires a file")
-            options[:search] = args[i]
-        elseif arg == "--search-threshold"
-            i += 1
-            i > length(args) && fatal("--search-threshold requires a value")
-            options[:search_threshold] = parse(Int, args[i])
-        elseif arg == "--min-neighbors"
-            i += 1
-            i > length(args) && fatal("--min-neighbors requires a value")
-            options[:min_neighbors] = parse(Int, args[i])
-        elseif arg == "-o" || arg == "--output"
-            i += 1
-            i > length(args) && fatal("--output requires a file")
-            options[:output] = args[i]
-        elseif arg == "-d" || arg == "--debug"
-            options[:debug] = true
-        elseif arg == "-h" || arg == "--help"
-            printhelp()
-            exit(0)
-        elseif startswith(arg, "-")
-            fatal("unknown option $arg")
-        else
-            if options[:file] !== nothing
-                fatal("only one input file may be specified")
-            end
-            options[:file] = arg
-        end
-
-        i += 1
-    end
-
-    options[:file] === nothing && fatal("no input file specified")
-
-    return options
-end
-
-"""
-    facedetect(args=ARGS)
-
-Entry point for the facedetect command-line tool: parses options,
-loads cascades, detects (and optionally searches for) faces, and
-prints or draws the results.
-"""
-function facedetect(args = ARGS)
-    options = parseargs(args)
-    loadcascades(options[:data_dir])
-
-    im, features = face_detect_file(
-        options[:file];
-        biggest = options[:query] || options[:biggest],
-        min_neighbors = options[:min_neighbors],
-    )
-
-    sim_scores = nothing
-
-    if options[:search] !== nothing
-        search_im, search_features = face_detect_file(options[:search]; biggest = true)
-        isempty(search_features) && fatal("cannot detect face in template")
-
-        sim_threshold = options[:search_threshold] / 100
-        sim_template = normalizerect(search_im, search_features[1])
-        all_scores = pairwisesimilarity(im, features, sim_template)
-
-        sim_scores = Float64[]
-        sim_features = NTuple{4, Int}[]
-
-        for (i, score) in enumerate(all_scores)
-            if score >= sim_threshold
-                push!(sim_scores, score)
-                push!(sim_features, features[i])
-            end
-        end
-
-        features = sim_features
-    end
-
-    if options[:query]
-        return isempty(features) ? 2 : 0
-    end
-
-    scores = Dict{String, Any}[]
-    best = nothing
-
-    if !isempty(features) &&
-            (
-                options[:debug] ||
-                    options[:best] ||
-                    options[:biggest] ||
-                    sim_scores !== nothing
-            )
-
-        scores, best = rankfaces(im, features)
-
-        if sim_scores !== nothing
-            for i in eachindex(features)
-                scores[i]["MSSIM"] = sim_scores[i]
-            end
-        end
-    end
-
-    if options[:output] !== nothing
-        drawresults(
-            options[:file],
-            options[:output],
-            features,
-            scores,
-            best,
-            options[:debug],
-        )
-    end
-
-    if (options[:best] || options[:biggest]) && best !== nothing
-        features = [features[best]]
-    end
-
-    if options[:center]
-        for (x, y, w, h) in features
-            cx = round(Int, x + w / 2)
-            cy = round(Int, y + h / 2)
-            println("$cx $cy")
-        end
-    else
-        for (x, y, w, h) in features
-            println("$x $y $w $h")
-        end
-    end
-
-    return 0
-end
 
 end # module FaceDetect
