@@ -228,18 +228,6 @@ function mssim_norm(X, Y; K1 = 0.01, K2 = 0.03, win_size = 11, sigma = 1.5)
 
     kernel_size = OpenCV.Size{Int32}(Int32(win_size), Int32(win_size))
 
-    ux = OpenCV.GaussianBlur(X, kernel_size, sigma)
-    uy = OpenCV.GaussianBlur(Y, kernel_size, sigma)
-    uxx = OpenCV.GaussianBlur(X .* X, kernel_size, sigma)
-    uyy = OpenCV.GaussianBlur(Y .* Y, kernel_size, sigma)
-    uxy = OpenCV.GaussianBlur(X .* Y, kernel_size, sigma)
-
-    ux = Array(ux)
-    uy = Array(uy)
-    uxx = Array(uxx)
-    uyy = Array(uyy)
-    uxy = Array(uxy)
-
     # OpenCV.jl requires a 3-D array (channel dim first) for its filter ops.
     to3d(a) = reshape(a, 1, size(a)...)
 
