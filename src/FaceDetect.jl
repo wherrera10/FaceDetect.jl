@@ -168,8 +168,10 @@ function rankfaces(im, rects)
 
         # normalizerect returns a 2-D grayscale array.
         roi_n = normalizerect(im, rect; equalize = false, same_aspect = true)
+        # OpenCV.Laplacian requires a channel-first 3-D array, not 2-D
+        roi_n3 = reshape(roi_n, 1, size(roi_n)...)
         # Float32 depth avoids clipping negative curvature and variance measures edge energy
-        roi_l = OpenCV.Laplacian(roi_n, OpenCV.CV_32F)
+        roi_l = OpenCV.Laplacian(roi_n3, OpenCV.CV_32F)
         e = var(roi_l)
 
         dx = width / 2 - x + w / 2
