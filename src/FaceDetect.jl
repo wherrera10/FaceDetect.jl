@@ -18,12 +18,14 @@ const NORM_SIZE = 100
 const NORM_MARGIN = 10
 const CASCADES = Dict{String, OpenCV.CascadeClassifier}()
 
+const DEBUG_PRINTLN = Ref(true)
+
 """
     fatal(msg)
 
 Print an error message `msg` to stderr and throw an exception with the message."""
 function fatal(msg)
-    println(stderr, "Error in FaceDetect.jl: $msg")
+    DEBUG_PRINTLN && println(stderr, "Error in FaceDetect.jl: $msg")
     throw(ErrorException(msg))
 end
 
