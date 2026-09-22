@@ -166,8 +166,10 @@ function rankfaces(im, rects)
 
         # normalizerect returns a 2-D grayscale array.
         roi_n = normalizerect(im, rect; equalize = false, same_aspect = true)
-        roi_l = OpenCV.Laplacian(roi_n, OpenCV.CV_8U)
-        e = sum(roi_l) / length(roi_l)
+        # Float depth avoids clipping negative curvature; variance (not mean)
+        # measures edge energy since the signed Laplacian averages toward zero.
+        roi_l = OpenCV.Laplacian(roi_n, OpenCV.CV_32F)
+        e = var(roi_l)
 
         dx = width / 2 - x + w / 2
         dy = height / 2 - y + h / 2
