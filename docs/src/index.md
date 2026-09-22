@@ -1,6 +1,6 @@
 # FaceDetect.jl
 
-
+![Description](assets/childface.png)
 
 OpenCV based face detection in Julia
 
