@@ -5,7 +5,9 @@ on:
     branches:
       - main
     tags: ['*']
-  pull_request:
+  
+permissions:
+  contents: write
 
 jobs:
   build:
