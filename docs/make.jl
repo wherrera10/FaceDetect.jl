@@ -20,5 +20,5 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/wherrera10/FaceDetect.jl.git",
-    devbranch="master",
+    devbranch="gh-pages",
 )
