@@ -1,7 +1,4 @@
-"""
-    Julia face detection using OpenCV.jl. See similar code at
-    https://github.com/opencv/opencv/blob/4.x/samples/python/facedetect.py.
-"""
+""" Julia face detection using OpenCV.jl. """
 module FaceDetect
 
 using OpenCV
