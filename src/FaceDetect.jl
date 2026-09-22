@@ -25,7 +25,7 @@ const DEBUG_PRINTLN = Ref(true)
 
 Print an error message `msg` to stderr and throw an exception with the message."""
 function fatal(msg)
-    DEBUG_PRINTLN && println(stderr, "Error in FaceDetect.jl: $msg")
+    DEBUG_PRINTLN[] && println(stderr, "Error in FaceDetect.jl: $msg")
     throw(ErrorException(msg))
 end
 
