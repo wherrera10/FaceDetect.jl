@@ -23,7 +23,7 @@ for (x, y, w, h) in faces
 end
 
 # Simple file input and output using the command interface with a vector of command strings
-# The -o string indicated the next string is the output file name
+# The "-o" string indicates the next string in the vector is the output file name
 # the last string, a name not preceded by an option, is by default the input file name
 facedetect(["-o", "detectedfaces.png", "groupphoto.jpg"])
 
