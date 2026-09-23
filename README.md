@@ -1,8 +1,6 @@
 # FaceDetect.jl
 
 [![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://wherrera10.github.io/FaceDetect.jl/)
-[![Documentation build](https://github.com/wherrera10/FaceDetect.jl/actions/workflows/Documentation.yml/badge.svg)](https://github.com/wherrera10/FaceDetect.jl/actions/workflows/Documentation.yml)
-
 [![CI](https://github.com/wherrera10/FaceDetect.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/wherrera10/FaceDetect.jl/actions/workflows/ci.yml)
 
 OpenCV based face detection in Julia
