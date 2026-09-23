@@ -2,10 +2,10 @@ name: CI
 on:
   pull_request:
     branches:
-      - master
+      - main
   push:
     branches:
-      - master
+      - main
     tags: '*'
 env:
   JULIA_NUM_THREADS: 2
@@ -60,8 +60,8 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: doctest
-            using ThreadSafeDicts
-            doctest(ThreadSafeDicts)' 
+            using FaceDetect
+            doctest(FaceDetect)' 
       - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
