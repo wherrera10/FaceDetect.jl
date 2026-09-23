@@ -18,7 +18,7 @@ makedocs(;
     ],
 )
 
-if get(ENV, "GITHUB_WORKFLOW", "") != "CI"
+if get(ENV, "FACEDETECT_DEPLOY_DOCS", "true") == "true"
     deploydocs(;
         repo="github.com/wherrera10/FaceDetect.jl.git",
         devbranch="main",
