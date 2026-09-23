@@ -37,7 +37,7 @@ end
 using FaceDetect
 using OpenCV
 
-loadcascades() # does nothing if already have the Haar file, otherwise will download
+loadcascades() # Call before using facedetect, to set up the CASCADES dict. Downloads data if missing.
 
 # Manual image handling: facedetect's size filtering assumes a single-channel image,
 # so detect on grayscale and draw onto a new color copy for display/output.
