@@ -18,7 +18,9 @@ makedocs(;
     ],
 )
 
-deploydocs(;
-    repo="github.com/wherrera10/FaceDetect.jl.git",
-    devbranch="main",
-)
+if get(ENV, "GITHUB_WORKFLOW", "") != "CI"
+    deploydocs(;
+        repo="github.com/wherrera10/FaceDetect.jl.git",
+        devbranch="main",
+    )
+end
