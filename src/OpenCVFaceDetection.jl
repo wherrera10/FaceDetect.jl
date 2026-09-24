@@ -1,5 +1,5 @@
 """ Julia face detection using OpenCV.jl. """
-module FaceDetect
+module OpenCVFaceDetection
 
 using OpenCV
 using Downloads, Printf, Statistics
