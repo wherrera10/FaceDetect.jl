@@ -2,7 +2,7 @@
 
 ![Description](assets/childface.png)
 
-OpenCV based face detection in Julia
+OpenCV based face detection in Julia.
 
 ## Examples
 
@@ -39,9 +39,7 @@ for (x, y, w, h) in faces
     println("Face: x=$x, y=$y, width=$w, height=$h")
 end
 
-
 # And if you want a visual example, with use of OpenCV display functions:
-
 using OpenCVFaceDetection
 using OpenCV
 
@@ -49,7 +47,6 @@ loadcascades() # Call before using facedetect, to set up the CASCADES dict. Down
 
 # Manual image handling: facedetect's size filtering assumes a single-channel image,
 # so detect on grayscale and draw onto a new color copy for display/output.
-
 img_gray = OpenCV.imread("groupphoto.jpg", OpenCV.IMREAD_GRAYSCALE)
 img = OpenCV.imread("groupphoto.jpg")
 faces = facedetect(img_gray; biggest = false, min_neighbors = 5)
@@ -64,22 +61,15 @@ OpenCV.imwrite("faces_detected.jpg", img)
 OpenCV.imshow("Detected Faces", img)
 OpenCV.waitKey(0)
 OpenCV.destroyAllWindows()
-
 ```
 
-
 ## Installation
+
 ```julia
 using Pkg
 Pkg.add("OpenCVFaceDetection")
 ```
 
-## Functions Reference
+The package is designed for image-based face detection and returns bounding boxes in image coordinates. The default workflow is to call `loadcascades()` once and then use `facedetect` on either a grayscale array or a file path.
 
-
-```@index
-```
-
-```@autodocs
-Modules = [OpenCVFaceDetection]
-```
+To browse the API and usage details, see the [Manual](@ref) and [API Reference](@ref).
