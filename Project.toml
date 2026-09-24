@@ -1,4 +1,4 @@
-name = "FaceDetect"
+name = "OpenCVFaceDetection"
 uuid = "3a3cb31a-4a77-4887-ba1a-a3494ab875a7"
 authors = ["William Herrera <wherrera@alahonua.com>, partially derived from Python code by Yuri D'Elia"]
 version = "0.1.0"

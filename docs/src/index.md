@@ -81,5 +81,5 @@ Pkg.add("OpenCVFaceDetection")
 ```
 
 ```@autodocs
-Modules = [FaceDetect]
+Modules = [OpenCVFaceDetection]
 ```
