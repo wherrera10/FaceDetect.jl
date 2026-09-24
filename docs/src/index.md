@@ -10,7 +10,7 @@ OpenCV based face detection in Julia.
 using OpenCVFaceDetection
 using OpenCV
 
-# Load the built-in Haar cascade files if needed
+# Load the built-in Haar cascade files, downloading if necessary
 loadcascades()
 
 # Read an image and detect faces: returns vector of bounding boxes for detected faces
