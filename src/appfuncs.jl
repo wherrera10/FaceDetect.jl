@@ -129,7 +129,7 @@ end
 
 Entry point for the facedetect command-line tool: parses options,
 loads cascades, detects (and optionally searches for) faces, and
-prints or draws the results.
+prints or draws the results. See also facedetect.py by Yuri D'Elia
 """
 function facedetect(args::Vector{String} = ARGS)
     options = parseargs(args)
