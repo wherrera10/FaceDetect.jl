@@ -3,6 +3,7 @@
     printhelp()
 
 Print the command-line usage message for the facedetect tool.
+Copied from the similar python tool, facedetect, by Yuri D'Elia
 """
 function printhelp()
     println(
