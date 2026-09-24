@@ -1,14 +1,14 @@
 using Documenter, FaceDetect
 
-DocMeta.setdocmeta!(FaceDetect, :DocTestSetup, :(using FaceDetect); recursive=true)
+DocMeta.setdocmeta!(FaceDetect, :DocTestSetup, :(using OpenCVFaceDetection); recursive=true)
 
 makedocs(;
-    modules=[FaceDetect],
+    modules=[OpenCVFaceDetection],
     authors="William Herrera",
-    sitename="FaceDetect.jl Documentation",
-    repo=Documenter.Remotes.GitHub("wherrera10", "FaceDetect.jl"),
+    sitename="OpenCVFaceDetection.jl Documentation",
+    repo=Documenter.Remotes.GitHub("wherrera10", "OpenCVFaceDetection.jl"),
     format=Documenter.HTML(;
-        canonical="https://wherrera10.github.io/FaceDetect.jl",
+        canonical="https://wherrera10.github.io/OpenCVFaceDetection.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -20,7 +20,7 @@ makedocs(;
 
 if get(ENV, "FACEDETECT_DEPLOY_DOCS", "true") == "true"
     deploydocs(;
-        repo="github.com/wherrera10/FaceDetect.jl.git",
+        repo="github.com/wherrera10/OpenCVFaceDetection.jl.git",
         devbranch="main",
     )
 end
