@@ -1,6 +1,6 @@
-using Documenter, FaceDetect
+using Documenter, OpenCVFaceDetection
 
-DocMeta.setdocmeta!(FaceDetect, :DocTestSetup, :(using OpenCVFaceDetection); recursive=true)
+DocMeta.setdocmeta!(OpenCVFaceDetection, :DocTestSetup, :(using OpenCVFaceDetection); recursive=true)
 
 makedocs(;
     modules=[OpenCVFaceDetection],

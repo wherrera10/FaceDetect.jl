@@ -20,7 +20,7 @@ include("appfuncs.jl")
 
 Print an error message `msg` to stderr and throw an exception with the message."""
 function fatal(msg)
-    DEBUG_PRINTLN[] && println(stderr, "Error in FaceDetect.jl: $msg")
+    DEBUG_PRINTLN[] && println(stderr, "Error in OpenCVFaceDetection.jl: $msg")
     throw(ErrorException(msg))
 end
 
@@ -362,4 +362,4 @@ function drawresults(input_path, output_path, features, scores, best, debug)
 end
 
 
-end # module FaceDetect
+end # module OpenCVFaceDetection
