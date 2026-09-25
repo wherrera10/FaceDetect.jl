@@ -2,7 +2,7 @@
 
 # Designed to work just like the OpenCV python code example, 
 #    see https://github.com/npinto/opencv/blob/master/samples/python2/facedetect.py
-# or run `facedetect --help`
+# or run `facesdetect --help`
 
 using OpenCVFaceDetection
 
