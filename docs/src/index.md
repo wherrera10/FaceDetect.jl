@@ -25,11 +25,12 @@ end
 # Simple file input and output using the command interface with a vector of command strings
 # The "-o" string indicates the next string in the vector is the output file name
 # the last string, a name not preceded by an option, is by default the input file name
-facedetect(["-o", "detectedfaces.png", "groupphoto.jpg"])
+facesdetect(["-o", "detectedfaces.png", "groupphoto.jpg"])
 
 # The /bin directory has the executable for the command-line interface of the face detection tool.
+# Note this is named /bin/facesdetect to distinguish it from its ancestral facedetect.py tool
 # Use it like this at command line (may need to be renamed with .cmd for Windows):
-# ./bin/facedetect -o detectedfaces.png groupphoto.jpg
+# ./bin/facesdetect -o detectedfaces.png groupphoto.jpg
 
 # Another example: this returns (equalized_image, detected_faces)
 img, faces = facedetect("groupphoto.jpg"; biggest = true)
